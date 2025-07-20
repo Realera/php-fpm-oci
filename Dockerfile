@@ -1,11 +1,10 @@
 #
-# PHP-fpm container based on official PHP 7.3 image with additional extensions
+# PHP-fpm container based on official PHP 8.4 image with additional extensions
 # like zip, pdo_mysql, bcmath, oci8 and gd. Image is build for Laravel applications.
 #
-# OS: Debian 9 Streatch-slim
 #
 FROM php:8.4-fpm
-
+#
 #
 #--------------------------------------------------------------------------
 # General Updates
@@ -40,6 +39,11 @@ RUN apt-get update && \
 #--------------------------------------------------------------------------
 #
 
+#Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- \
+        --install-dir=/usr/local/bin \
+        --filename=composer
+
 # Download oracle packages and install OCI8
 RUN curl -o instantclient-basic-linux.x64-19.6.0.0.0dbru.zip https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip \
     && unzip instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -d /usr/lib/oracle/ \
@@ -54,9 +58,11 @@ ENV LD_LIBRARY_PATH /usr/lib/oracle/instantclient_19_6
 
 # Install PHP extensions: Laravel needs also zip, mysqli and bcmath which
 # are not included in default image. Also install our compiled oci8 extensions.
-RUN docker-php-ext-install zip pdo_mysql tokenizer bcmath opcache pcntl \
-    && docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/lib/oracle/instantclient_19_6 \
-    && docker-php-ext-install -j$(nproc) oci8 \
+RUN docker-php-ext-install zip pdo_mysql bcmath opcache pcntl \
+   #&& docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/lib/oracle/instantclient_19_6 \
+   #&& docker-php-ext-install -j$(nproc) oci8 \
+    && echo 'instantclient,/usr/lib/oracle/instantclient_19_6' | pecl install oci8 \
+    && docker-php-ext-enable oci8 \
     # Install the PHP gd library
     && docker-php-ext-configure gd \
         --with-jpeg=/usr/include/ \
